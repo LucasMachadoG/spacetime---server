@@ -33,8 +33,8 @@ export async function authRoutes(app:FastifyInstance) {
     const userSchema = z.object({
       id: z.number(),
       login: z.string(),
-      nome: z.string(),
-      avatarUrl: z.string().url()
+      name: z.string(),
+      avatar_url: z.string().url()
     })
 
     const userInfo = userSchema.parse(userResponse.data)
@@ -50,8 +50,8 @@ export async function authRoutes(app:FastifyInstance) {
         data:{
           githubId: userInfo.id,
           login: userInfo.login,
-          nome: userInfo.nome,
-          avatarUrl: userInfo.avatarUrl
+          nome: userInfo.name,
+          avatarUrl: userInfo.avatar_url
         }
       })
     }
