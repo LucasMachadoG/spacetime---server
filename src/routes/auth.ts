@@ -1,52 +1,45 @@
+import axios from "axios";
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
-import axios from 'axios'
 import { prisma } from "../lib/prisma";
 
-export async function authRoutes(app: FastifyInstance){
-  app.post('/register', async (request) => {
+export async function authRoutes(app:FastifyInstance) {
+  app.post("/register", async (request) => {
     const bodySchema = z.object({
       code: z.string()
     })
 
     const { code } = bodySchema.parse(request.body)
 
-    const accessTokenResponse = await axios.post(
-      'https://github.com/login/oauth/access_token',
-      null, 
-      //Terceiro parametro sao as configurações da minha requisição
-      {
-        //Esses params sao os parametros qua vao na minha URL
-        params: {
-          code,
-          client_id: process.env.GITHUB_CLIENT_ID,
-          client_secret: process.env.GITHUB_CLIENT_SECRET
-        },
-        //O accept vai servir para eu dizer para o github qual o formato da resposta que eu quero que ele me de
-        headers: {
-          Accept: 'application/json'
-        }
+    const accessTokenResponse = await axios.post("https://github.com/login/oauth/access_token", null, {
+      params: {
+        client_id: process.env.GITHUB_CLIENT_ID,
+        client_secret: process.env.GITHUB_CLIENT_SECRET,
+        code
+      },
+      headers: {
+        Accept: 'application/json'
       }
-    )
+    })
 
     const { access_token } = accessTokenResponse.data
 
-    const userResponse = await axios.get('https://github.com/user', {
+    const userResponse = await axios.get("https://api.github.com/user", {
       headers: {
         Authorization: `Bearer ${access_token}`
       }
     })
 
     const userSchema = z.object({
-      id: z.string(),
+      id: z.number(),
       login: z.string(),
       nome: z.string(),
-      avatarURL: z.string().url()
+      avatarUrl: z.string().url()
     })
 
     const userInfo = userSchema.parse(userResponse.data)
 
-    let user = await prisma.user.findUnique({
+    let user = await prisma.user.findUniqueOrThrow({
       where: {
         githubId: userInfo.id
       }
@@ -54,18 +47,18 @@ export async function authRoutes(app: FastifyInstance){
 
     if(!user){
       user = await prisma.user.create({
-        data: {
+        data:{
           githubId: userInfo.id,
           login: userInfo.login,
           nome: userInfo.nome,
-          avatarUrl: userInfo.avatarURL
+          avatarUrl: userInfo.avatarUrl
         }
       })
     }
 
     const token = app.jwt.sign({
-      nome: user.nome,
-      avatarURL: user.avatarUrl
+      name: user.nome,
+      avatarUrl: user.avatarUrl
     }, {
       sub: user.id,
       expiresIn: '30 days'
