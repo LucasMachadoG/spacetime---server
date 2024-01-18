@@ -65,7 +65,9 @@ export async function authRoutes(app:FastifyInstance) {
     })
 
     return {
-      token
+      token,
+      name: user.nome,
+      avatarUrl: user.avatarUrl
     }
   })
 }
